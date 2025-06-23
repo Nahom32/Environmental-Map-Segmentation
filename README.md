@@ -13,6 +13,5 @@ pip install -r requirements.txt
    ```
 5. Take the ```*.tiff``` file from the datasets folder and add it your google drive account.
 6. Run the image_analysis notebook in google colab.
-7. 
    
    
