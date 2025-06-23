@@ -68,7 +68,7 @@ try:
     os.makedirs("images", exist_ok=True)
     filename = "images/test_image_vienna.png"
     Image.fromarray(img_8bit).save(filename)
-    print(f"✅ Saved image to: {filename}")
+    print(f" Saved image to: {filename}")
 
     plt.imshow(image)
     plt.title("Vienna RGB (Sentinel-2)")

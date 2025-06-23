@@ -5,4 +5,5 @@ ipyleaflet
 Pillow
 rasterio
 scikit-image
+geemap
 
