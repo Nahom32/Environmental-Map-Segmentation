@@ -12,6 +12,7 @@ def get_bing_satellite_image(lat, lon, zoom=18, size='350,350', key='YOUR_BING_K
     else:
         raise Error("Failed to download image")
 
+
 def generate_grid_coordinates(center_lat, center_lon, steps=3, offset=0.001):
     '''
         This function generates grid structure from the center grid 
@@ -20,7 +21,9 @@ def generate_grid_coordinates(center_lat, center_lon, steps=3, offset=0.001):
     lons = [center_lon + i * offset for i in range(-(steps//2), (steps//2)+1)]
     grid = [(lat, lon) for lat in lats for lon in lons]
     return grid
-def download_grid_images(center_lat,center_lon,key,save_dir):
+
+
+def download_grid_images(center_lat: float,center_lon:float,key,save_dir:str):
     os.makedirs(save_dir,exist_ok=True)
     coords = generate_grid_coordinates(center_lat,center_lon)
     for i, (lat, lon) in enumerate(coords):
