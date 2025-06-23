@@ -10,7 +10,7 @@ def get_bing_satellite_image(lat, lon, zoom=18, size='350,350', key='YOUR_BING_K
     if response.status_code == 200:
         return Image.open(BytesIO(response.content))
     else:
-        raise Error("Failed to download image")
+        raise Exception("Failed to download image")
 
 
 def generate_grid_coordinates(center_lat, center_lon, steps=3, offset=0.001):
@@ -27,7 +27,7 @@ def download_grid_images(center_lat: float,center_lon:float,key,save_dir:str):
     os.makedirs(save_dir,exist_ok=True)
     coords = generate_grid_coordinates(center_lat,center_lon)
     for i, (lat, lon) in enumerate(coords):
-        img = get_bing_image(lat, lon, key=key)
+        img = get_bing_satellite_image(lat, lon, key=key)
         if img:
             img.save(f"{save_dir}/image_{i}_{lat}_{lon}.png")
 
