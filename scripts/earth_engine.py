@@ -1,15 +1,19 @@
 import ee
 import geemap
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # Initialize Earth Engine
-ee.Initialize()
+
+ee.Authenticate()
+ee.Initialize(project=os.getenv("GOOGLE_PROJECT_ID"))
 
 # Define location and parameters
 center = [11.57628, 37.42476]
 radius = 3048  # meters
 geometry = ee.Geometry.Point(center[1], center[0]).buffer(radius)
-output_dir = os.path.expanduser('~/sentinel_output')  # Output directory
+output_dir = os.path.expanduser('../datasets')  # Output directory
 
 # Create output directory if it doesn't exist
 os.makedirs(output_dir, exist_ok=True)
@@ -61,6 +65,6 @@ geemap.ee_export_image_to_drive(
     folder='EarthEngine',
     region=geometry,
     scale=10,
-    file_format='PNG'
+    file_format='tif'
 )
 print(f"PNG export started. Check Google Drive folder 'EarthEngine' for {png_filename}")
