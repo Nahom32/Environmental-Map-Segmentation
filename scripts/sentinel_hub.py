@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubRequest, DataCollection, MimeType
 from dotenv import load_dotenv
 import os
+import cv2
 load_dotenv()
 config = SHConfig()
 config.sh_client_id = os.getenv("CLIENT_ID")
@@ -25,8 +26,17 @@ date_list = [start_date + timedelta(days=i) for i in range(0, (end_date - start_
 
 images = []
 evalscript = """
-// Simple RGB
-return [B04, B03, B02];
+//VERSION=3
+function setup() {
+  return {
+    input: ["B04", "B03", "B02"],
+    output: { bands: 3 }
+  };
+}
+
+function evaluatePixel(sample) {
+  return [sample.B04 / 2550.0, sample.B03 / 2550.0, sample.B02 / 2550.0];
+}
 """
 
 for date in date_list:
@@ -43,5 +53,12 @@ for date in date_list:
         size=size,
         config=config
     )
-    image = request.get_data(save_data=True)[0]
+    image = request.get_data()[0]
     images.append(image)
+def save_images_to_directory(images, directory, prefix="image"):
+    os.makedirs(directory, exist_ok=True)
+    for idx, img in enumerate(images):
+        filename = os.path.join(directory, f"{prefix}_{idx+1}.png")
+        cv2.imwrite(filename, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+if __name__ == '__main__':
+    save_images_to_directory(images,'../datasets')
