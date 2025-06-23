@@ -1,40 +1,35 @@
 from datetime import datetime, timedelta
 from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubRequest, DataCollection, MimeType
-from dotenv import load_dotenv
 import os
-import cv2
+import numpy as np
 from PIL import Image
+from dotenv import load_dotenv
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
+
 load_dotenv()
 config = SHConfig()
 config.sh_client_id = os.getenv("CLIENT_ID")
 config.sh_client_secret = os.getenv("CLIENT_SECRET")
-LAT, LON = 8.9806, 38.7578  # Addis Ababa
-RADIUS = 300  # meters (~1000 ft)
-RESOLUTION = 10  # meters/pixel
+if not config.sh_client_id or not config.sh_client_secret:
+    raise ValueError("Missing SentinelHub credentials")
 
-bbox = BBox(
-    bbox=[LON - 0.005, LAT - 0.005, LON + 0.005, LAT + 0.005],
-    crs=CRS.WGS84
-)
-size = bbox_to_dimensions(bbox, resolution=RESOLUTION)
+# Set Vienna location (frequent coverage)
+lat, lon = 48.2082, 16.3738
+bbox = BBox([lon-0.005, lat-0.005, lon+0.005, lat+0.005], crs=CRS.WGS84)
+size = bbox_to_dimensions(bbox, resolution=10)
 
-# --------------------------- Multiple Date Requests ---------------------------
-start_date = datetime(2024, 6, 1)
-end_date = datetime(2024, 6, 10)
-time_step = 5
-
-date_list = [start_date + timedelta(days=i) for i in range(0, (end_date - start_date).days + 1, time_step)]
-
-images = []
+# Evalscript: raw RGB bands, no mask
 evalscript = """
 //VERSION=3
 function setup() {
   return {
     input: ["B04", "B03", "B02"],
-    output: { bands: 3 }
+    output: { bands: 3 },
+    mosaicking: "ORBIT"
   };
 }
-
 function evaluatePixel(sample) {
   return [
     sample.B04 / 10000.0,
@@ -44,28 +39,40 @@ function evaluatePixel(sample) {
 }
 """
 
-for date in date_list:
-    request = SentinelHubRequest(
-        evalscript=evalscript,
-        input_data=[
-            SentinelHubRequest.input_data(
-                data_collection=DataCollection.SENTINEL2_L2A,
-                time_interval=(date.strftime('%Y-%m-%dT%H:%M:%S'), (date + timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S'))
-            )
-        ],
-        responses=[SentinelHubRequest.output_response('default', MimeType.PNG)],
-        bbox=bbox,
-        size=size,
-        config=config
-    )
+# Set time range to known recent availability
+time_interval = ("2024-06-01", "2024-06-10")
+
+# Request
+request = SentinelHubRequest(
+    evalscript=evalscript,
+    input_data=[
+        SentinelHubRequest.input_data(
+            data_collection=DataCollection.SENTINEL2_L2A,
+            time_interval=time_interval,
+            maxcc=1.0  # Accept all cloud cover for now
+        )
+    ],
+    responses=[SentinelHubRequest.output_response("default", MimeType.PNG)],
+    bbox=bbox,
+    size=size,
+    config=config
+)
+
+try:
     image = request.get_data()[0]
-    images.append(image)
-def save_images_to_directory(images, directory, prefix="image"):
-    os.makedirs(directory, exist_ok=True)
-    for idx, img in enumerate(images):
-        img_8bit = (img * 255).astype('uint8')
-        im = Image.fromarray(img_8bit, 'RGB')
-        filename = os.path.join(directory, f"{prefix}_{idx+1}.png")
-        im.save(filename)
-if __name__ == '__main__':
-    save_images_to_directory(images,'../datasets')
+    print(f"Image shape: {image.shape}, min: {image.min()}, max: {image.max()}, mean: {image.mean()}")
+
+    image = np.clip(image, 0, 1)
+    img_8bit = (image * 255).astype(np.uint8)
+
+    os.makedirs("images", exist_ok=True)
+    filename = "images/test_image_vienna.png"
+    Image.fromarray(img_8bit).save(filename)
+    print(f"✅ Saved image to: {filename}")
+
+    plt.imshow(image)
+    plt.title("Vienna RGB (Sentinel-2)")
+    plt.savefig("images/preview.png")
+    plt.close()
+except Exception as e:
+    print(f"Error: {e}")
