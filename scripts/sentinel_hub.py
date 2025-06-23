@@ -3,11 +3,12 @@ from sentinelhub import SHConfig, BBox, CRS, bbox_to_dimensions, SentinelHubRequ
 from dotenv import load_dotenv
 import os
 import cv2
+from PIL import Image
 load_dotenv()
 config = SHConfig()
 config.sh_client_id = os.getenv("CLIENT_ID")
 config.sh_client_secret = os.getenv("CLIENT_SECRET")
-LAT, LON = 40.7128, -74.0060  # Example: New York City
+LAT, LON = 8.9806, 38.7578  # Addis Ababa
 RADIUS = 300  # meters (~1000 ft)
 RESOLUTION = 10  # meters/pixel
 
@@ -35,7 +36,11 @@ function setup() {
 }
 
 function evaluatePixel(sample) {
-  return [sample.B04 / 2550.0, sample.B03 / 2550.0, sample.B02 / 2550.0];
+  return [
+    sample.B04 / 10000.0,
+    sample.B03 / 10000.0,
+    sample.B02 / 10000.0
+  ];
 }
 """
 
@@ -58,7 +63,9 @@ for date in date_list:
 def save_images_to_directory(images, directory, prefix="image"):
     os.makedirs(directory, exist_ok=True)
     for idx, img in enumerate(images):
+        img_8bit = (img * 255).astype('uint8')
+        im = Image.fromarray(img_8bit, 'RGB')
         filename = os.path.join(directory, f"{prefix}_{idx+1}.png")
-        cv2.imwrite(filename, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+        im.save(filename)
 if __name__ == '__main__':
     save_images_to_directory(images,'../datasets')
