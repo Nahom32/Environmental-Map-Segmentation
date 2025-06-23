@@ -1,1 +1,8 @@
 sentinelhub 
+earthengine-api
+folium
+ipyleaflet
+Pillow
+rasterio
+scikit-image
+
